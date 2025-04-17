@@ -3,7 +3,7 @@ import { Navbar } from "@/components/Navbar";
 import { MonacoEditor } from "@/components/Editor";
 import { Output } from "@/components/Output";
 import { AiComposer } from "@/components/AiComposer";
-import { TodoList } from "@/components/TodoList";
+import ModelViewer from "@/components/ModelViewer";
 
 export default function Home() {
   return (
@@ -35,7 +35,8 @@ export default function Home() {
                 <AiComposer />
               </div>
               <div className="h-1/3  max-w-[450px] mx-auto lg:max-w-none overflow-auto pb-2">
-                <TodoList />
+                {/* <TodoList /> */}
+                <ModelViewer />
               </div>
             </div>
           </div>
