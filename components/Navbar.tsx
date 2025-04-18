@@ -1,6 +1,6 @@
 "use client";
 import { Button } from "./ui/button";
-import { Play, MessageSquare, Code } from "lucide-react";
+import { Play, Code, Image } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -18,8 +18,8 @@ export function Navbar() {
   async function handleExecuteCode() {
     try {
       setLoading(true);
-      setError(null); 
-      
+      setError(null);
+
       const result = await fetch("/api/execute", {
         method: "POST",
         headers: {
@@ -30,18 +30,20 @@ export function Navbar() {
           content: content,
         }),
       });
-      
+
       if (!result.ok) {
         throw new Error(`Error: ${result.status} ${result.statusText}`);
       }
-  
+
       const data = await result.json();
       // Extract output based on Piston API response structure
       const output = data.run?.output || data.output || "";
       setOutput(output);
     } catch (error) {
       console.error(error);
-      setError(error instanceof Error ? error.message : "An unknown error occurred");
+      setError(
+        error instanceof Error ? error.message : "An unknown error occurred"
+      );
     } finally {
       setLoading(false);
     }
@@ -68,13 +70,12 @@ export function Navbar() {
             <SelectValue placeholder="Language" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="javascript">JavaScript (18.15.0)</SelectItem>
-            <SelectItem value="typescript">TypeScript (5.0.3)</SelectItem>
-            <SelectItem value="python">Python (3.10.0)</SelectItem>
-            <SelectItem value="java">Java (15.0.2)</SelectItem>
-            <SelectItem value="csharp">C# (5.0.201)</SelectItem>
-            <SelectItem value="cpp">C++ (10.2.0)</SelectItem>
-            <SelectItem value="c">C (10.2.0)</SelectItem>
+            <SelectItem value="JavaScript">JavaScript (18.15.0)</SelectItem>
+            <SelectItem value="TypeScript">TypeScript (5.0.3)</SelectItem>
+            <SelectItem value="Python">Python (3.10.0)</SelectItem>
+            <SelectItem value="Java">Java (15.0.2)</SelectItem>
+            <SelectItem value="C++">C++ (10.2.0)</SelectItem>
+            <SelectItem value="C">C (10.2.0)</SelectItem>
           </SelectContent>
         </Select>
         <Button
@@ -87,7 +88,7 @@ export function Navbar() {
           Run
         </Button>
         <Button variant="outline" size="icon">
-          <MessageSquare className="size-4" />
+          <Image className="size-4 text-white" />
         </Button>
       </div>
     </nav>

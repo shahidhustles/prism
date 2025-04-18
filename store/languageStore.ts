@@ -1,13 +1,12 @@
 import { create } from "zustand";
 
 export type Language =
-  | "javascript"
-  | "typescript"
-  | "python"
-  | "java"
-  | "csharp"
-  | "cpp"
-  | "c";
+  | "JavaScript"
+  | "TypeScript"
+  | "Python"
+  | "Java"
+  | "C++"
+  | "C";
 
 interface LanguageState {
   currentLanguage: Language;
@@ -15,6 +14,6 @@ interface LanguageState {
 }
 
 export const useLanguageStore = create<LanguageState>((set) => ({
-  currentLanguage: "javascript",
+  currentLanguage: "JavaScript",
   setLanguage: (language) => set({ currentLanguage: language }),
 }));

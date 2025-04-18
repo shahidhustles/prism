@@ -19,7 +19,7 @@ interface OutputState {
 // Create the store
 export const useOutputStore = create<OutputState>((set) => ({
   output: "",
-  content: "console.log('hello world')",
+  content: "",
   isLoading: false,
   error: null,
 
