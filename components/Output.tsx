@@ -6,28 +6,33 @@ import { toast } from "sonner";
 import { useMessageStore } from "@/store/messageStore";
 import { useLanguageStore } from "@/store/languageStore";
 import { useDiffStore } from "@/store/diffStore";
+import { AlertCircle } from "lucide-react";
 
 export function Output() {
   const { output, isLoading, error, errorCode } = useOutputStore();
   const { currentLanguage } = useLanguageStore();
   const { originalCode } = useDiffStore();
   const { setPendingMessage } = useMessageStore();
+  
   // Show toast notification when errorCode is 1 using useEffect
   useEffect(() => {
     if (errorCode === 1) {
       toast.error("Code execution failed", {
         description: "Would you like AI to help solve this issue?",
         action: {
-          label: "Let AI solve it",
+          label: "Solve Error",
           onClick: () => {
             setPendingMessage(
               `Solve the errors in this code: \n\`\`\`${currentLanguage}\n${originalCode}\n\`\`\``
             );
           },
         },
+        icon: <AlertCircle className="h-6 w-6 text-red-400" />,
+        className: "text-base [&>div]:mb-2 !p-4 !px-5",
+        closeButton: false
       });
     }
-  }, [errorCode, currentLanguage, setPendingMessage,originalCode]); // Only re-run when errorCode changes
+  }, [errorCode, currentLanguage, setPendingMessage, originalCode]);
 
   return (
     <div className="h-full overflow-hidden rounded-xl backdrop-blur-xl bg-white/10 dark:bg-black/20 border border-white/10 shadow-lg">
