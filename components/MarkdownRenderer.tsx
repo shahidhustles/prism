@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -8,9 +8,19 @@ import rehypeSanitize from "rehype-sanitize";
 import { CodeSnippet } from "./CodeSnippet";
 import type { Components } from "react-markdown";
 import type { ReactNode } from "react";
+import { useOutputStore } from "@/store/outputStore";
+import { useDiffStore } from "@/store/diffStore";
+
+// Add type definition for our custom window property
+declare global {
+  interface Window {
+    updateEditorDiff?: (code: string) => void;
+  }
+}
 
 interface MarkdownRendererProps {
   content: string;
+  isAiMessage?: boolean; // Add this prop to identify if content is from AI
 }
 
 // Define more specific component prop types
@@ -28,7 +38,47 @@ type LinkProps = ComponentProps & {
   href?: string;
 };
 
-export function MarkdownRenderer({ content }: MarkdownRendererProps) {
+export function MarkdownRenderer({
+  content,
+  isAiMessage = false,
+}: MarkdownRendererProps) {
+  const { content: editorContent } = useOutputStore();
+  const { originalCode } = useDiffStore();
+  const [codeMapping, setCodeMapping] = useState<Map<string, string>>(
+    new Map()
+  );
+
+  // Pre-process content to extract diffable code blocks
+  useEffect(() => {
+    if (isAiMessage) {
+      // Extract code blocks and map them to their original counterparts
+      const newCodeMapping = new Map<string, string>();
+
+      // Simple regex to extract code blocks - in a real app you might want a more robust solution
+      const codeBlockRegex = /```(\w+)?\s*([\s\S]*?)```/g;
+      let match;
+
+      while ((match = codeBlockRegex.exec(content)) !== null) {
+        const codeContent = match[2].trim();
+
+        // For now, map each code block to the editor content
+        if (codeContent && editorContent) {
+          newCodeMapping.set(codeContent, editorContent);
+        }
+      }
+
+      setCodeMapping(newCodeMapping);
+    }
+  }, [content, isAiMessage, editorContent]);
+
+  // Handle accepting changes to code
+  const handleAcceptChanges = (newCode: string) => {
+    // When review changes is clicked, we'll send the code to the main editor
+    if (window && typeof window.updateEditorDiff === "function") {
+      window.updateEditorDiff(newCode);
+    }
+  };
+
   // Use type assertion for components to avoid TypeScript errors
   const components = {
     // Custom code block renderer using our CodeSnippet component
@@ -53,6 +103,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
 
       // For code blocks WITH specified language, use our CodeSnippet component
       const codeContent = String(children).replace(/\n$/, "");
+      const matchedOriginalCode = codeMapping.get(codeContent) || originalCode;
 
       return (
         <div className="my-4">
@@ -61,6 +112,9 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
             language={language}
             title={`${language.charAt(0).toUpperCase() + language.slice(1)}`}
             readOnly={true}
+            isAiResponse={isAiMessage}
+            originalCode={isAiMessage ? matchedOriginalCode : undefined}
+            onAcceptChanges={handleAcceptChanges}
           />
         </div>
       );

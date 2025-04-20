@@ -35,7 +35,6 @@ export default function Home() {
                 <AiComposer />
               </div>
               <div className="h-1/3  max-w-[450px] mx-auto lg:max-w-none overflow-auto pb-2">
-                {/* <TodoList /> */}
                 <ModelViewer />
               </div>
             </div>

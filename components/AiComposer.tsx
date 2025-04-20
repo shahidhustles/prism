@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect } from "react";
-import { Maximize2Icon, Send, Image as ImageIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Send } from "lucide-react";
 import { useChat } from "@ai-sdk/react";
 import {
   Select,
@@ -12,21 +12,43 @@ import {
 } from "@/components/ui/select";
 import { useMessageStore } from "@/store/messageStore";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
+import { CodeSnippet } from "@/components/CodeSnippet";
+import { useLanguageStore } from "@/store/languageStore";
 
 export function AiComposer() {
-  const [selectedModel, setSelectedModel] = React.useState("gemini-2.0-flash");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { currentLanguage } = useLanguageStore();
+  const [selectedModel, setSelectedModel] = useState("gemini-2.0-flash");
+  const [originalCode, setOriginalCode] = useState<string>("");
   const {
     messages,
     input,
     handleInputChange,
-    handleSubmit,
     append,
+    setInput,
     isLoading: aiLoading,
   } = useChat({
     api: "/api/chat",
+    headers: {
+      "X-Model": selectedModel,
+    },
   });
 
-  const { pendingMessage, isLoading, resetState } = useMessageStore();
+  const { pendingMessage, isLoading, resetState, pendingInput } =
+    useMessageStore();
+
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, isLoading, aiLoading]);
+
+  useEffect(() => {
+    if (pendingInput) {
+      // Store the original code when new code is added to chat
+      setOriginalCode(pendingInput);
+    }
+  }, [pendingInput]);
 
   useEffect(() => {
     if (pendingMessage) {
@@ -35,13 +57,11 @@ export function AiComposer() {
         pendingMessage
       );
 
-      // Send to AI chat API
       append({
         role: "user",
         content: pendingMessage,
       });
 
-      // Clear the pending message after sending
       resetState();
     }
   }, [pendingMessage, append, resetState]);
@@ -49,7 +69,49 @@ export function AiComposer() {
   const models = [
     { id: "gemini-2.0-flash", name: "Gemini 2.0 flash" },
     { id: "gpt-4o", name: "GPT-4o" },
+    { id: "gpt-4o-mini", name: "GPT-4o mini" },
+    { id: "deepseek-v3", name: "Deepseek V3" },
+    { id: "deepseek-r1", name: "Deepseek R1" },
   ];
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
+    }
+  };
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    if (!input.trim() && !pendingInput) return;
+
+    const userMessage = input.trim();
+
+    if (pendingInput) {
+      append({
+        role: "user",
+        content: userMessage
+          ? `${userMessage}\n\n\`\`\`\n${pendingInput}\n\`\`\``
+          : pendingInput,
+      });
+    } else {
+      append({
+        role: "user",
+        content: userMessage,
+      });
+    }
+
+    setInput("");
+    resetState();
+  }
+
+  const handleAcceptChanges = (newCode: string) => {
+    // Here you would handle what happens when user accepts changes
+    // For example, you might want to update some state or trigger another action
+    console.log("Changes accepted:", newCode);
+    // You could also send this back to an editor or update some state
+  };
 
   return (
     <div className="h-full overflow-hidden rounded-xl backdrop-blur-xl bg-white/10 dark:bg-black/20 border border-white/10 shadow-lg flex flex-col">
@@ -73,9 +135,6 @@ export function AiComposer() {
             </SelectContent>
           </Select>
         </div>
-        <button className="h-6 w-6 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors">
-          <Maximize2Icon className="h-4 w-4" />
-        </button>
       </div>
 
       <div className="p-4 flex-1 overflow-auto text-[#D1D1D1] [text-shadow:0px_1px_6px_rgba(0,0,0,0.4)]">
@@ -99,9 +158,15 @@ export function AiComposer() {
                 </div>
                 <div className="text-sm whitespace-pre-wrap">
                   {message.role === "user" ? (
-                    message.content
+                    <MarkdownRenderer
+                      content={message.content}
+                      isAiMessage={false}
+                    />
                   ) : (
-                    <MarkdownRenderer content={message.content} />
+                    <MarkdownRenderer
+                      content={message.content}
+                      isAiMessage={true}
+                    />
                   )}
                 </div>
               </div>
@@ -118,35 +183,45 @@ export function AiComposer() {
                 </div>
               </div>
             )}
+            {/* Empty div at the end for scrolling reference */}
+            <div ref={messagesEndRef} />
           </div>
         )}
       </div>
 
       <div className="p-3 border-t border-white/10">
+        {pendingInput && (
+          <div className="mb-3">
+            <CodeSnippet 
+              code={pendingInput} 
+              language={currentLanguage} 
+              isAiResponse={true}
+              originalCode={originalCode}
+              onAcceptChanges={handleAcceptChanges}
+            />
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
           <div className="flex-1 relative">
-            <input
+            <textarea
               name="prompt"
               value={input}
               onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
               placeholder="Ask about your code..."
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-white/30"
+              rows={3}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-white/30 resize-none"
             />
           </div>
-          <button
-            type="button"
-            className="p-2 rounded-lg hover:bg-white/10 transition-colors"
-            title="Attach image"
-          >
-            <ImageIcon className="h-4 w-4 text-white" />
-          </button>
-          <button
-            type="submit"
-            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
-            disabled={!input.trim() || isLoading || aiLoading}
-          >
-            <Send className="h-4 w-4 text-white shadow-sm" />
-          </button>
+          <div className="flex flex-col gap-2">
+            <button
+              type="submit"
+              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+              disabled={!input.trim() || isLoading || aiLoading}
+            >
+              <Send className="h-4 w-4 text-white shadow-sm" />
+            </button>
+          </div>
         </form>
       </div>
     </div>

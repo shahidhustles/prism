@@ -1,17 +1,51 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createOpenAI } from "@ai-sdk/openai";
+import { createDeepSeek } from "@ai-sdk/deepseek";
 import { streamText } from "ai";
 
 const google = createGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
 
+const openai = createOpenAI({
+  apiKey: process.env.CHATANYWHERE_API_KEY,
+  baseURL: "https://api.chatanywhere.tech/v1",
+});
+
+const deepseek = createDeepSeek({
+  apiKey: process.env.CHATANYWHERE_API_KEY,
+  baseURL: "https://api.chatanywhere.tech/v1",
+});
+
 export async function POST(req: Request) {
   const { messages } = await req.json();
+  const selectedModel = req.headers.get("X-Model");
+  console.log(selectedModel);
 
-  console.log(messages);
-  
+  let model;
+  switch (selectedModel) {
+    case "gpt-4o":
+      model = openai("gpt-4o");
+      break;
+    case "gpt-4o-mini":
+      model = openai("gpt-4o-mini");
+      break;
+    case "deepseek-v3":
+      model = deepseek("deepseek-v3");
+      break;
+    case "deepseek-r1":
+      model = deepseek("deepseek-r1");
+      break;
+    case "gemini-2.0-flash":
+      model = google("gemini-2.0-flash-001");
+      break;
+    default:
+      model = google("gemini-1.5-flash");
+      break;
+  }
+
   const result = streamText({
-    model: google("gemini-2.0-flash-001"),
+    model: model!,
     messages,
     system: `You are a helpful code assistant that explains code in a clear, concise manner and responds to all types of programming questions. You can analyze code, answer follow-up questions, and handle unrelated programming topics with equal proficiency.
 

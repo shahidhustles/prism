@@ -1,15 +1,24 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { Editor } from "@monaco-editor/react";
-import { Maximize2Icon } from "lucide-react";
 import * as monaco from "monaco-editor";
+
+// Add type definition for our custom window property
+declare global {
+  interface Window {
+    updateEditorDiff?: (code: string) => void;
+  }
+}
 
 interface CodeSnippetProps {
   code: string;
   language?: string;
   title?: string;
   readOnly?: boolean;
+  isAiResponse?: boolean;
+  originalCode?: string;
+  onAcceptChanges?: (newCode: string) => void;
 }
 
 export function CodeSnippet({
@@ -17,13 +26,45 @@ export function CodeSnippet({
   language = "javascript",
   title = "Code Snippet",
   readOnly = true,
+  isAiResponse = false,
+  onAcceptChanges,
 }: CodeSnippetProps) {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const [editorHeight, setEditorHeight] = useState<string>("200px");
+
+  useEffect(() => {
+    if (!code) return;
+
+    const lineCount = code.split("\n").length;
+
+    const calculatedHeight = Math.min(Math.max(lineCount * 20, 100), 500);
+    setEditorHeight(`${calculatedHeight}px`);
+  }, [code]);
 
   const handleEditorDidMount = (
     editor: monaco.editor.IStandaloneCodeEditor
   ) => {
     editorRef.current = editor;
+
+    if (editor) {
+      const model = editor.getModel();
+      if (model) {
+        const lineCount = model.getLineCount();
+        const calculatedHeight = Math.min(Math.max(lineCount * 20, 100), 500);
+        setEditorHeight(`${calculatedHeight}px`);
+      }
+    }
+  };
+
+  const handleReviewChanges = () => {
+    // Send code to main editor for diff review
+    if (onAcceptChanges) {
+      onAcceptChanges(code);
+    }
+    // If no handler provided, try to use global window method
+    else if (window && typeof window.updateEditorDiff === "function") {
+      window.updateEditorDiff(code);
+    }
   };
 
   return (
@@ -40,15 +81,20 @@ export function CodeSnippet({
             {title}
           </span>
         </div>
-        <button className="h-6 w-6 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors">
-          <Maximize2Icon className="h-4 w-4 text-white" />
-        </button>
+        {isAiResponse && (
+          <button
+            onClick={handleReviewChanges}
+            className="text-xs px-1 py-1  rounded-md bg-white/10 hover:bg-white/20 transition-colors text-white"
+          >
+            Review Changes
+          </button>
+        )}
       </div>
 
       {/* Code editor area */}
       <div className="font-mono text-sm p-4">
         <Editor
-          height="200px" // Default height, can be adjusted via props
+          height={editorHeight}
           language={language}
           value={code}
           theme="vs-dark"
@@ -80,6 +126,9 @@ export function CodeSnippet({
   /* <CodeSnippet 
   code="console.log('Hello, world!');" 
   language="javascript"
-  title="Example.js" 
+  title="Example.js"
+  originalCode="console.log('Old code');"
+  isAiResponse={true}
+  onAcceptChanges={(newCode) => console.log(newCode)}
 /> */
 }

@@ -84,9 +84,11 @@ export async function POST(req: Request) {
       `[DEBUG] Piston API response: ${JSON.stringify(data, null, 2)}`
     );
 
+    console.log(data.run.stderr);
+
     return Response.json({
-      output: data.run?.output || "",
-      stderr: data.run?.stderr || "",
+      output: data.run?.output || data.run?.stderr,
+      code: data.run?.code,
       compile: data.compile?.output || "",
       error: data.message || null,
     });

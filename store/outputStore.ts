@@ -6,6 +6,7 @@ interface OutputState {
   content: string;
   isLoading: boolean;
   error: string | null;
+  errorCode: number;
 
   // Actions
   setOutput: (output: string) => void;
@@ -14,11 +15,13 @@ interface OutputState {
   clearOutput: () => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
+  setErrorCode: (errorCode: number) => void;
 }
 
 // Create the store
 export const useOutputStore = create<OutputState>((set) => ({
   output: "",
+  errorCode: 0,
   content: "",
   isLoading: false,
   error: null,
@@ -34,6 +37,7 @@ export const useOutputStore = create<OutputState>((set) => ({
 
   clearOutput: () => set({ output: "" }),
 
+  setErrorCode: (errorCode) => set({ errorCode }),
   setLoading: (loading) => set({ isLoading: loading }),
 
   setError: (error) => set({ error }),

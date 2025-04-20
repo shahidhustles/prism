@@ -13,13 +13,14 @@ import type { Language } from "@/store/languageStore";
 import { useOutputStore } from "@/store/outputStore";
 export function Navbar() {
   const { currentLanguage, setLanguage } = useLanguageStore();
-  const { setLoading, setOutput, content, setError } = useOutputStore();
+  const { setLoading, setOutput, content, setError, setErrorCode } =
+    useOutputStore();
 
   async function handleExecuteCode() {
     try {
       setLoading(true);
       setError(null);
-
+      setErrorCode(0);
       const result = await fetch("/api/execute", {
         method: "POST",
         headers: {
@@ -36,8 +37,12 @@ export function Navbar() {
       }
 
       const data = await result.json();
+
       // Extract output based on Piston API response structure
-      const output = data.run?.output || data.output || "";
+      if (data.code == 1) {
+        setErrorCode(1);
+      }
+      const output = data.output || "";
       setOutput(output);
     } catch (error) {
       console.error(error);
